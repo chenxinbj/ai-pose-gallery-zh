@@ -346,9 +346,12 @@ export async function stitchRecipeCanvas(recipe: RecipeState): Promise<string> {
   return canvas.toDataURL('image/jpeg', 0.92)
 }
 
+// 本仓库生产部署的公网镜像，完整同步 img/ 与 thumbs/ 下的全部素材（含姿势 / 深度 / 服装 / 人像 / Shisei）
+const PUBLIC_MIRROR_ORIGIN = 'https://ai-pose-gallery.anhao.app'
+
 // 将本地相对路径自动解析为公网可访问的 HTTPS URL
 // - 若当前站点已部署在公网 HTTPS 域名，优先使用当前站点 URL
-// - 若在 localhost 本地开发，自动映射为三大图库对应的 Cloudflare Pages 公网源站 CDN URL
+// - 若在 localhost 本地开发，映射到本仓库生产部署的公网镜像，相对路径原样保留
 export function toPublicHttpsUrl(src: string): string {
   if (/^https?:\/\//i.test(src) || src.startsWith('data:')) return src
   const clean = src.replace(/^\/+/, '')
@@ -361,26 +364,8 @@ export function toPublicHttpsUrl(src: string): string {
     return `${window.location.origin}/${clean}`
   }
 
-  // 本地开发态自动映射为源站 Cloudflare Pages 公网 HTTPS 地址，方便云端生图接口直接拉取
-  if (clean.startsWith('img/portrait/')) {
-    const filename = clean.slice('img/portrait/'.length).replace(/\.webp$/i, '.png')
-    return `https://ai-portrait-gallery.pages.dev/img/${filename}`
-  }
-  if (clean.startsWith('thumbs/portrait/')) {
-    return `https://ai-portrait-gallery.pages.dev/thumbs/${clean.slice('thumbs/portrait/'.length)}`
-  }
-  if (clean.startsWith('img/costume/') || clean.startsWith('thumbs/costume/')) {
-    return `https://ai-costume-gallery.pages.dev/${clean}`
-  }
-  if (clean.startsWith('img/depth/')) {
-    const filename = clean.slice('img/depth/'.length).replace(/\.webp$/i, '.png')
-    return `https://ai-pose-depth-gallery.pages.dev/img/${filename}`
-  }
-  if (clean.startsWith('thumbs/depth/')) {
-    const filename = clean.slice('thumbs/depth/'.length).replace(/\.webp$/i, '.jpg')
-    return `https://ai-pose-depth-gallery.pages.dev/thumbs/${filename}`
-  }
-  return `https://ai-pose-gallery.pages.dev/${clean}`
+  // 镜像站点与本地素材目录结构一致，按原相对路径直取，避免按目录分类映射时把地址指到 SPA 兜底页
+  return `${PUBLIC_MIRROR_ORIGIN}/${clean}`
 }
 
 async function srcToPngDataUrl(src: string): Promise<string> {
